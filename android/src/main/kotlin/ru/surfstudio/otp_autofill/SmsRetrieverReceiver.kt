@@ -16,12 +16,27 @@ class SmsRetrieverReceiver : BroadcastReceiver() {
         if (intent?.action == SmsRetriever.SMS_RETRIEVED_ACTION) {
 
             val extras = intent.extras
-            val smsRetrieverStatus = extras?.get(SmsRetriever.EXTRA_STATUS) as Status
+            
+            // Safely extract the status to avoid ClassCastException
+            val statusObj = extras?.get(SmsRetriever.EXTRA_STATUS)
+            if (statusObj !is Status) {
+                // Invalid status object, likely a malicious intent
+                return
+            }
+            
+            val smsRetrieverStatus = statusObj
 
             when (smsRetrieverStatus.statusCode) {
                 CommonStatusCodes.SUCCESS -> {
-                    extras.get(SmsRetriever.EXTRA_SMS_MESSAGE)?.also {
-                        smsBroadcastReceiverListener.onSuccess(it as String)
+                    // Safely extract SMS message
+                    try {
+                        val smsMessage = extras.get(SmsRetriever.EXTRA_SMS_MESSAGE)
+                        if (smsMessage is String) {
+                            smsBroadcastReceiverListener.onSuccess(smsMessage)
+                        }
+                    } catch (e: Exception) {
+                        // Failed to extract SMS message, possibly malicious
+                        // Do not propagate the error to avoid exposing internals
                     }
                 }
 

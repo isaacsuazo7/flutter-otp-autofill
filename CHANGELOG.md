@@ -1,5 +1,19 @@
 # Changelog
 
+## 4.1.1
+
+* **SECURITY FIX**: Fix Intent Redirection vulnerability in Android implementation
+* Migrate Android build files to Kotlin DSL (.kts)
+* Update Android Gradle Plugin to 8.5.1
+* Update Gradle to 8.7
+* Update Kotlin to 1.9.23
+* Update Google Play Services dependencies to latest versions
+* Update AndroidX dependencies to latest versions
+* Update compileSdk to 34
+* Add Intent validation to prevent malicious Intent injection
+* Add safe type casting to prevent ClassCastException attacks
+* Improve error handling in broadcast receivers
+
 ## 4.1.0
 
 * Fix `com.google.android.gms.common.api.ApiException: 16`

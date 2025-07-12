@@ -16,12 +16,27 @@ class SmsUserConsentReceiver : BroadcastReceiver() {
         if (intent?.action == SmsRetriever.SMS_RETRIEVED_ACTION) {
 
             val extras = intent.extras
-            val smsRetrieverStatus = extras?.get(SmsRetriever.EXTRA_STATUS) as Status
+            
+            // Safely extract the status to avoid ClassCastException
+            val statusObj = extras?.get(SmsRetriever.EXTRA_STATUS)
+            if (statusObj !is Status) {
+                // Invalid status object, likely a malicious intent
+                return
+            }
+            
+            val smsRetrieverStatus = statusObj
 
             when (smsRetrieverStatus.statusCode) {
                 CommonStatusCodes.SUCCESS -> {
-                    extras.getParcelable<Intent>(SmsRetriever.EXTRA_CONSENT_INTENT)?.also {
-                        smsBroadcastReceiverListener.onSuccess(it)
+                    // Extract the consent intent safely
+                    try {
+                        val consentIntent = extras.getParcelable<Intent>(SmsRetriever.EXTRA_CONSENT_INTENT)
+                        if (consentIntent != null) {
+                            smsBroadcastReceiverListener.onSuccess(consentIntent)
+                        }
+                    } catch (e: Exception) {
+                        // Failed to extract consent intent, possibly malicious
+                        // Do not propagate the error to avoid exposing internals
                     }
                 }
 

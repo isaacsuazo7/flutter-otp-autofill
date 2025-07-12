@@ -174,11 +174,24 @@ class OTPPlugin : FlutterPlugin, MethodCallHandler, PluginRegistry.ActivityResul
             it.smsBroadcastReceiverListener =
                 object : SmsUserConsentReceiver.SmsUserConsentBroadcastReceiverListener {
                     override fun onSuccess(intent: Intent?) {
-                        intent?.let { context ->
-                            activity?.startActivityForResult(
-                                context,
-                                smsConsentRequest
-                            )
+                        intent?.let { consentIntent ->
+                            // Validate that the intent is from Google Play Services
+                            if (isIntentFromGooglePlayServices(consentIntent)) {
+                                try {
+                                    activity?.startActivityForResult(
+                                        consentIntent,
+                                        smsConsentRequest
+                                    )
+                                } catch (e: Exception) {
+                                    // Handle potential security exceptions
+                                    lastResult?.error("SECURITY_ERROR", "Failed to start consent activity: ${e.message}", null)
+                                    lastResult = null
+                                }
+                            } else {
+                                // Reject untrusted intent
+                                lastResult?.error("SECURITY_ERROR", "Received untrusted intent", null)
+                                lastResult = null
+                            }
                         }
                     }
 
@@ -261,5 +274,26 @@ class OTPPlugin : FlutterPlugin, MethodCallHandler, PluginRegistry.ActivityResul
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
+    }
+
+    /**
+     * Validates that an Intent is from Google Play Services.
+     * This helps prevent Intent Redirection vulnerabilities.
+     */
+    private fun isIntentFromGooglePlayServices(intent: Intent): Boolean {
+        // Check if the intent has a component (package and class)
+        val component = intent.component
+        if (component != null) {
+            // Verify the package name is from Google Play Services
+            val packageName = component.packageName
+            return packageName == "com.google.android.gms" || 
+                   packageName == "com.google.android.gsf"
+        }
+        
+        // If no component is specified, check the action
+        // SMS consent intents should have specific actions
+        val action = intent.action
+        return action == "com.google.android.gms.auth.api.phone.SMS_CONSENT" ||
+               action == "com.google.android.gms.auth.api.phone.SMS_RETRIEVED"
     }
 }
